@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  postgres-inventory:
+    image: postgres:15-alpine # Usar una versión reciente
+    container_name: inventory_postgres_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5432:5432" # Expone el puerto de PostgreSQL a tu máquina local
+    volumes:
+      - inventory_postgres_data:/var/lib/postgresql/data # Persistencia de datos
+    restart: unless-stopped
+
+volumes:
+  inventory_postgres_data:

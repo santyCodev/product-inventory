@@ -1,0 +1,99 @@
+package com.santicodev.gestorinventarioproductos.category.application.service;
+
+import com.santicodev.gestorinventarioproductos.category.domain.Category;
+import com.santicodev.gestorinventarioproductos.shared.infraestructure.dto.CategoryDTO;
+import com.santicodev.gestorinventarioproductos.category.infraestructure.repository.CategoryRepository;
+import com.santicodev.gestorinventarioproductos.shared.domain.exception.DuplicateResourceException;
+import com.santicodev.gestorinventarioproductos.shared.domain.exception.ResourceNotFoundException;
+import com.santicodev.gestorinventarioproductos.shared.infraestructure.dto.CategoryPartialUpdateDTO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class CategoryService {
+    private final CategoryRepository categoryRepository;
+
+    // --- Métodos de Mapeo (Entidad <-> DTO) ---
+    private CategoryDTO mapToDTO(Category category) {
+        return new CategoryDTO(category.getId(), category.getName(), category.getDescription());
+    }
+
+    private Category mapToEntity(CategoryDTO categoryDTO) {
+        return new Category(categoryDTO.id(), categoryDTO.name(), categoryDTO.description());
+    }
+
+    // --- Métodos de Lógica de Negocio (CRUD) ---
+    @Transactional
+    public CategoryDTO createCategory(CategoryDTO categoryDTO) {
+        if (categoryRepository.existsByName(categoryDTO.name())) {
+            throw new DuplicateResourceException("La categoría con el nombre '" + categoryDTO.name() + "' ya existe.");
+        }
+        Category category = mapToEntity(categoryDTO);
+        Category savedCategory = categoryRepository.save(category);
+        return mapToDTO(savedCategory);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryDTO> getAllCategories() {
+        return categoryRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public CategoryDTO getCategoryById(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con ID: " + id));
+        return mapToDTO(category);
+    }
+
+    @Transactional
+    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
+        Category existingCategory = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con ID: " + id));
+
+        if (!existingCategory.getName().equals(categoryDTO.name()) && categoryRepository.existsByName(categoryDTO.name())) {
+            throw new DuplicateResourceException("La categoría con el nombre '" + categoryDTO.name() + "' ya existe.");
+        }
+
+        existingCategory.setName(categoryDTO.name());
+        existingCategory.setDescription(categoryDTO.description());
+
+        Category updatedCategory = categoryRepository.save(existingCategory);
+        return mapToDTO(updatedCategory);
+    }
+
+    @Transactional
+    public void deleteCategory(Long id) {
+        if (!categoryRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Categoría no encontrada con ID: " + id);
+        }
+        categoryRepository.deleteById(id);
+    }
+
+    @Transactional
+    public CategoryDTO patchCategory(Long id, CategoryPartialUpdateDTO patchDTO) {
+        Category existingCategory = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con ID: " + id));
+
+        // Aplicar cambios solo si los campos están presentes en el DTO de PATCH
+        if (patchDTO.getName() != null && !patchDTO.getName().trim().isEmpty()) {
+            if (!existingCategory.getName().equals(patchDTO.getName()) && categoryRepository.existsByName(patchDTO.getName())) {
+                throw new DuplicateResourceException("La categoría con el nombre '" + patchDTO.getName() + "' ya existe.");
+            }
+            existingCategory.setName(patchDTO.getName());
+        }
+
+        if (patchDTO.getDescription() != null) {
+            existingCategory.setDescription(patchDTO.getDescription());
+        }
+
+        Category updatedCategory = categoryRepository.save(existingCategory);
+        return mapToDTO(updatedCategory);
+    }
+}
