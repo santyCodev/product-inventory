@@ -24,13 +24,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con nombre: " + username));
 
-        // Construye y devuelve el objeto UserDetails de Spring Security a partir de mi User
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPassword(), // La contraseña ya está hasheada
-                user.getRoles().stream() // Mapea los roles del modelo a SimpleGrantedAuthority de Spring Security
-                        .map(role -> new SimpleGrantedAuthority(role.getName()))
-                        .collect(Collectors.toSet())
-        );
+        // ¡Usa tu nueva implementación de UserDetailsImpl!
+        return UserDetailsImpl.build(user);
     }
 }
