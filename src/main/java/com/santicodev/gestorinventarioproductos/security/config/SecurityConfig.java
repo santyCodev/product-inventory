@@ -1,5 +1,6 @@
 package com.santicodev.gestorinventarioproductos.security.config;
 
+import com.santicodev.gestorinventarioproductos.security.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,11 +14,20 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
+
+    // Inyecta el filtro JWT
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
     // --- Definición de Beans ---
 
     // 1. PasswordEncoder: Para hashear y verificar contraseñas
@@ -52,8 +62,10 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Indispensable para JWT (no se usa sesión de estado)
-                );
-        // .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Lo añadiremos más tarde
+                )
+                // AÑADE ESTA LÍNEA para integrar el filtro JWT en la cadena de seguridad
+                // Asegura que nuestro filtro JWT se ejecute antes del filtro de autenticación de nombre de usuario/contraseña
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
