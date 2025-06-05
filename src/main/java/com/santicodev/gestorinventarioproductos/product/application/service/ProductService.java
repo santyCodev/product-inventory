@@ -9,6 +9,10 @@ import com.santicodev.gestorinventarioproductos.shared.domain.exception.Duplicat
 import com.santicodev.gestorinventarioproductos.shared.domain.exception.ResourceNotFoundException;
 import com.santicodev.gestorinventarioproductos.shared.infraestructure.dto.ProductPartialUpdateDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +21,8 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+// Define el nombre del caché para esta clase
+@CacheConfig(cacheNames = "products")
 public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
@@ -35,6 +41,8 @@ public class ProductService {
     }
 
     // --- Métodos de Lógica de Negocio (CRUD) ---
+    // Siempre ejecuta el metodo y actualiza la caché con el ID del producto creado
+    @CachePut(key = "#result.id")
     @Transactional
     public ProductDTO createProduct(ProductDTO productDTO) {
         if (productRepository.existsByName(productDTO.name())) {
@@ -56,13 +64,18 @@ public class ProductService {
         return mapToDTO(savedProduct);
     }
 
+    // Cachea el resultado de este metodo La clave por defecto son los argumentos.
+    @Cacheable
     @Transactional(readOnly = true)
     public List<ProductDTO> getAllProducts() {
+        System.out.println("Fetching all products from DB...");
         return productRepository.findAll().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
+    // Cachea el resultado usando el 'id' como clave
+    @Cacheable(key = "#id")
     @Transactional(readOnly = true)
     public ProductDTO getProductById(Long id) {
         Product product = productRepository.findById(id)
@@ -70,6 +83,8 @@ public class ProductService {
         return mapToDTO(product);
     }
 
+    // Siempre ejecuta el metodo y actualiza la caché con el 'id'
+    @CachePut(key = "#id")
     @Transactional
     public ProductDTO updateProduct(Long id, ProductDTO productDTO) {
         Product existingProduct = productRepository.findById(id)
@@ -95,6 +110,8 @@ public class ProductService {
         return mapToDTO(updatedProduct);
     }
 
+    // Elimina la entrada de la caché asociada con este 'id'
+    @CacheEvict(key = "#id")
     @Transactional
     public void deleteProduct(Long id) {
         if (!productRepository.existsById(id)) {
@@ -103,6 +120,8 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
+    // Cachea el resultado de este metodo La clave por defecto son los argumentos.
+    @Cacheable
     @Transactional(readOnly = true)
     public List<ProductDTO> getProductsByCategoryId(Long categoryId) {
         // 8. Validación: Verificar que la categoría exista antes de buscar productos.
@@ -114,6 +133,8 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    // Siempre ejecuta el metodo y actualiza la caché con el 'id'
+    @CachePut(key = "#id")
     @Transactional
     public ProductDTO patchProduct(Long id, ProductPartialUpdateDTO patchDTO) {
         Product existingProduct = productRepository.findById(id)
@@ -150,5 +171,4 @@ public class ProductService {
         Product updatedProduct = productRepository.save(existingProduct);
         return mapToDTO(updatedProduct);
     }
-
 }

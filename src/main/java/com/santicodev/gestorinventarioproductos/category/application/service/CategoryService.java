@@ -7,6 +7,10 @@ import com.santicodev.gestorinventarioproductos.shared.domain.exception.Duplicat
 import com.santicodev.gestorinventarioproductos.shared.domain.exception.ResourceNotFoundException;
 import com.santicodev.gestorinventarioproductos.shared.infraestructure.dto.CategoryPartialUpdateDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@CacheConfig(cacheNames = "categories")
 public class CategoryService {
     private final CategoryRepository categoryRepository;
 
@@ -28,6 +33,8 @@ public class CategoryService {
     }
 
     // --- Métodos de Lógica de Negocio (CRUD) ---
+
+    @CachePut(key = "#result.id")
     @Transactional
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
         if (categoryRepository.existsByName(categoryDTO.name())) {
@@ -38,6 +45,7 @@ public class CategoryService {
         return mapToDTO(savedCategory);
     }
 
+    @Cacheable
     @Transactional(readOnly = true)
     public List<CategoryDTO> getAllCategories() {
         return categoryRepository.findAll().stream()
@@ -45,6 +53,7 @@ public class CategoryService {
                 .collect(Collectors.toList());
     }
 
+    @Cacheable(key = "#id")
     @Transactional(readOnly = true)
     public CategoryDTO getCategoryById(Long id) {
         Category category = categoryRepository.findById(id)
@@ -52,6 +61,7 @@ public class CategoryService {
         return mapToDTO(category);
     }
 
+    @CachePut(key = "#id")
     @Transactional
     public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
         Category existingCategory = categoryRepository.findById(id)
@@ -68,6 +78,7 @@ public class CategoryService {
         return mapToDTO(updatedCategory);
     }
 
+    @CacheEvict(key = "#id")
     @Transactional
     public void deleteCategory(Long id) {
         if (!categoryRepository.existsById(id)) {
@@ -76,6 +87,7 @@ public class CategoryService {
         categoryRepository.deleteById(id);
     }
 
+    @CachePut(key = "#id")
     @Transactional
     public CategoryDTO patchCategory(Long id, CategoryPartialUpdateDTO patchDTO) {
         Category existingCategory = categoryRepository.findById(id)

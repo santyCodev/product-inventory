@@ -29,8 +29,12 @@ import org.springframework.context.annotation.Configuration;
         ),
         servers = {
                 @Server(
-                        description = "Entorno Local",
+                        description = "Entorno Docker",
                         url = "http://localhost:8080"
+                ),
+                @Server(
+                        description = "Entorno Local",
+                        url = "http://localhost:8081"
                 )
                 // Puedes añadir más servidores (ej. desarrollo, producción)
                 // @Server(
