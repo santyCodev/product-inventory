@@ -9,7 +9,15 @@ WORKDIR /app
 # Copia los archivos de configuración de Maven y el pom.xml.
 # Esto aprovecha el caché de Docker si las dependencias no cambian.
 COPY pom.xml .
+
+# Copia el script del Maven Wrapper (mvnw)
+COPY mvnw .
+
+# Copia el directorio de configuración del Maven Wrapper (.mvn)
 COPY .mvn .mvn
+
+# Dale permisos de ejecución al script mvnw (¡IMPORTANTE!)
+RUN chmod +x ./mvnw
 
 # Copia solo los directorios src/ de cada módulo.
 # Esto es importante para proyectos multi-módulo si los tuvieras.
